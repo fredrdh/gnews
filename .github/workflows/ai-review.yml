@@ -21,7 +21,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.AI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Pega o diff (com limite de tamanho)
+          # Pega o diff
           DIFF=$(git diff origin/${{ github.base_ref }}...HEAD | head -c 50000)
           
           if [ -z "$DIFF" ]; then
@@ -32,12 +32,11 @@ jobs:
           # Prepara o prompt
           PROMPT="Aja como um Engenheiro de Segurança Sênior (DevSecOps). Analise o diff deste Pull Request em Português buscando vulnerabilidades OWASP (especialmente SQL Injection), code smells e melhores práticas. Responda de forma concisa.\n\nDIFF:\n$DIFF"
           
-          # Payload JSON robusto usando jq
           echo '{"contents": [{"parts": [{"text": ""}]}]}' > payload.json
           jq --arg txt "$PROMPT" '.contents[0].parts[0].text = $txt' payload.json > final_payload.json
 
-          # Chama a API do Gemini (v1 estável)
-          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$GEMINI_API_KEY" \
+          # Chama a API do Gemini (v1 estável com -latest)
+          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=$GEMINI_API_KEY" \
             -H 'Content-Type: application/json' \
             -d @final_payload.json)
 
