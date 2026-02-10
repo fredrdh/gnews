@@ -16,71 +16,52 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: pip install openai
-
-      - name: AI Reviewer (OpenAI-Compatible Gemini)
+      - name: AI Reviewer (Direct cURL Gemini)
         env:
           GEMINI_API_KEY: ${{ secrets.AI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python -c "
-          import os
-          from openai import OpenAI
-          import subprocess
-          import sys
+          # Pega o diff
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD | head -c 50000)
+          
+          if [ -z "$DIFF" ]; then
+            echo "No changes found."
+            exit 0
+          fi
 
-          def run():
-              try:
-                  # Configura cliente OpenAI apontando para o Google Gemini
-                  client = OpenAI(
-                      api_key=os.environ['GEMINI_API_KEY'],
-                      base_url='https://generativelanguage.googleapis.com/v1beta/openai/'
-                  )
-                  
-                  # Pega o diff do PR
-                  diff = subprocess.check_output(['git', 'diff', 'origin/${{ github.base_ref }}...HEAD']).decode('utf-8')
-                  
-                  if not diff:
-                      print('No changes found.')
-                      return
+          # Prepara o prompt (e escapa para JSON)
+          PROMPT="Aja como um Engenheiro de Segurança Sênior (DevSecOps). Analise o DIFF deste Pull Request em Português buscando vulnerabilidades OWASP (especialmente SQL Injection), code smells e melhores práticas. Responda de forma concisa.\n\nDIFF:\n$DIFF"
+          
+          # Cria o payload JSON de forma segura usando um arquivo temporário
+          cat <<EOF > payload.json
+          {
+            "contents": [{
+              "parts": [{"text": ""}]
+            }]
+          }
+          EOF
+          
+          # Injeta o prompt no JSON usando jq para evitar erros de escape
+          jq --arg txt "$PROMPT" '.contents[0].parts[0].text = $txt' payload.json > final_payload.json
 
-                  prompt = f'''Aja como um Engenheiro de Segurança Sênior (DevSecOps). 
-                  Analise o DIFF deste Pull Request em Português buscando:
-                  1. Vulnerabilidades OWASP Top 10 (especialmente SQL Injection e Insecure Deserialization).
-                  2. Code Smells e melhorias de código.
-                  3. Melhores práticas de Java 25 e Spring Boot.
+          # Chama a API do Gemini
+          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$GEMINI_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d @final_payload.json)
 
-                  DIFF:
-                  {diff}
-                  
-                  Responda de forma concisa em Português diretamente no comentário do PR.
-                  '''
-                  
-                  response = client.chat.completions.create(
-                      model='gemini-1.5-flash',
-                      messages=[
-                          {'role': 'system', 'content': 'Você é um revisor de código experiente.'},
-                          {'role': 'user', 'content': prompt}
-                      ]
-                  )
-                  
-                  review_text = response.choices[0].message.content
-                  
-                  with open('review.md', 'w') as f:
-                      f.write('### 🤖 IA Code Review (Gemini)\n\n' + review_text)
-                  
-                  # Posta o comentário no PR
-                  subprocess.run(['gh', 'pr', 'comment', str(${{ github.event.pull_request.number }}), '--body-file', 'review.md'], check=True)
-                  print('Review posted successfully.')
-              except Exception as e:
-                  print(f'Error during AI review: {e}')
-                  sys.exit(1)
+          # Extrai o texto da resposta
+          REVIEW_TEXT=$(echo $RESPONSE | jq -r '.candidates[0].content.parts[0].text')
 
-          run()
-          "
+          if [ "$REVIEW_TEXT" == "null" ] || [ -z "$REVIEW_TEXT" ]; then
+            echo "Error: Gemini response incomplete or empty."
+            echo $RESPONSE
+            exit 1
+          fi
+
+          # Salva o comentário
+          echo "### 🤖 IA Code Review (Gemini)" > review.md
+          echo "" >> review.md
+          echo "$REVIEW_TEXT" >> review.md
+
+          # Posta no PR
+          gh pr comment ${{ github.event.pull_request.number }} --body-file review.md
