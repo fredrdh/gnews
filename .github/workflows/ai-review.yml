@@ -33,39 +33,46 @@ jobs:
           import os
           import google.generativeai as genai
           import subprocess
+          import sys
 
           def run():
-              genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-              model = genai.GenerativeModel('gemini-1.5-flash')
-              
-              # Pega o diff do PR
-              diff = subprocess.check_output(['git', 'diff', 'origin/${{ github.base_ref }}...HEAD']).decode('utf-8')
-              
-              if not diff:
-                  print('No changes found.')
-                  return
+              try:
+                  genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+                  # Tentando usar o modelo Pro que e o mais estavel para essas tarefas
+                  model = genai.GenerativeModel('gemini-1.5-pro')
+                  
+                  # Pega o diff do PR (compara base com head)
+                  diff = subprocess.check_output(['git', 'diff', 'origin/${{ github.base_ref }}...HEAD']).decode('utf-8')
+                  
+                  if not diff:
+                      print('No changes found.')
+                      return
 
-              prompt = f'''Aja como um Engenheiro de Segurança Sênior (DevSecOps). 
-              Analise o DIFF deste Pull Request em Português buscando:
-              1. Vulnerabilidades OWASP Top 10 (especialmente SQL Injection e Insecure Deserialization).
-              2. Code Smells e melhorias de código.
-              3. Melhores práticas de Java 25 e Spring Boot.
+                  prompt = f'''Aja como um Engenheiro de Segurança Sênior (DevSecOps). 
+                  Analise o DIFF deste Pull Request em Português buscando:
+                  1. Vulnerabilidades OWASP Top 10 (especialmente SQL Injection e Insecure Deserialization).
+                  2. Code Smells e melhorias de código.
+                  3. Melhores práticas de Java 25 e Spring Boot.
 
-              DIFF:
-              {diff}
-              
-              Responda de forma concisa em Português.
-              '''
-              
-              response = model.generate_content(prompt)
-              review_text = response.text
-              
-              # Salva o comentário em um arquivo para o gh CLI
-              with open('review.md', 'w') as f:
-                  f.write('### 🤖 IA Code Review (Gemini)\n\n' + review_text)
-              
-              # Posta o comentário no PR
-              subprocess.run(['gh', 'pr', 'comment', str(${{ github.event.pull_request.number }}), '--body-file', 'review.md'], check=True)
+                  DIFF:
+                  {diff}
+                  
+                  Responda de forma concisa em Português diretamente no comentário.
+                  '''
+                  
+                  response = model.generate_content(prompt)
+                  review_text = response.text
+                  
+                  # Salva o comentário em um arquivo para o gh CLI
+                  with open('review.md', 'w') as f:
+                      f.write('### 🤖 IA Code Review (Gemini)\n\n' + review_text)
+                  
+                  # Posta o comentário no PR usando o gh CLI que ja vem no runner
+                  subprocess.run(['gh', 'pr', 'comment', str(${{ github.event.pull_request.number }}), '--body-file', 'review.md'], check=True)
+                  print('Review posted successfully.')
+              except Exception as e:
+                  print(f'Error during AI review: {e}')
+                  sys.exit(1)
 
           run()
           "
