@@ -21,9 +21,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.AI_API_KEY }}
-          OPENAI_API_ENDPOINT: https://generativelanguage.googleapis.com/v1beta/openai
+          OPENAI_API_ENDPOINT: https://gemini-openai-proxy.deno.dev
           LANGUAGE: Portuguese
-          MODEL: gemini-1.5-flash
+          MODEL: gpt-4
           PROMPT: |
             Aja como um Engenheiro de Seguranca Senior (DevSecOps).
             Analise o DIFF deste Pull Request buscando:
