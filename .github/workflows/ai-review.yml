@@ -16,50 +16,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: AI Reviewer (Direct cURL Gemini)
+      - name: AI Reviewer
+        uses: anc95/ChatGPT-CodeReview@main
         env:
-          GEMINI_API_KEY: ${{ secrets.AI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Pega o diff
-          BASE_SHA=${{ github.event.pull_request.base.sha }}
-          HEAD_SHA=${{ github.event.pull_request.head.sha }}
-          
-          git fetch origin $BASE_SHA --depth=1
-          DIFF=$(git diff $BASE_SHA $HEAD_SHA | head -c 50000)
-          
-          if [ -z "$DIFF" ]; then
-             DIFF=$(git diff HEAD~1 HEAD | head -c 50000)
-          fi
-          
-          if [ -z "$DIFF" ]; then
-            echo "No changes found."
-            exit 0
-          fi
-
-          # Prompt
-          PROMPT="Aja como um Engenheiro de Segurança Sênior (DevSecOps). Analise o diff deste Pull Request em Português buscando vulnerabilidades OWASP (especialmente SQL Injection), code smells e melhores práticas. Responda de forma concisa.\n\nDIFF:\n$DIFF"
-          
-          # Payload
-          echo '{"contents": [{"parts": [{"text": ""}]}]}' > payload.json
-          jq --arg txt "$PROMPT" '.contents[0].parts[0].text = $txt' payload.json > final_payload.json
-
-          # Chama a API do Gemini (v1beta com gemini-1.5-flash-8b)
-          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=$GEMINI_API_KEY" \
-            -H 'Content-Type: application/json' \
-            -d @final_payload.json)
-
-          # Extrai texto
-          REVIEW_TEXT=$(echo $RESPONSE | jq -r '.candidates[0].content.parts[0].text')
-
-          if [ "$REVIEW_TEXT" == "null" ] || [ -z "$REVIEW_TEXT" ]; then
-            echo "Error: Gemini response incomplete or empty."
-            echo $RESPONSE
-            exit 1
-          fi
-
-          # Salva e posta
-          echo "### 🤖 IA Code Review (Gemini)" > review.md
-          echo "" >> review.md
-          echo "$REVIEW_TEXT" >> review.md
-          gh pr comment ${{ github.event.pull_request.number }} --body-file review.md
+          OPENAI_API_KEY: ${{ secrets.AI_API_KEY }}
+          OPENAI_API_ENDPOINT: https://generativelanguage.googleapis.com/v1beta/openai
+          LANGUAGE: Portuguese
+          MODEL: gemini-2.0-flash
+          PROMPT: |
+            Aja como um Engenheiro de Seguranca Senior (DevSecOps).
+            Analise o DIFF deste Pull Request buscando:
+            1. Vulnerabilidades OWASP Top 10 (especialmente SQL Injection e Insecure Deserialization).
+            2. Code Smells e complexidade ciclomatica desnecessaria.
+            3. Aderencia as melhores praticas de Java 25 e Spring Boot 3.4.
+            4. Responda com comentarios tecnicos e construtivos diretamente nas linhas do codigo afetado.
