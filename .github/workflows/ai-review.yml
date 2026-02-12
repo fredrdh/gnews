@@ -23,7 +23,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USE_GITHUB_MODELS: true
-          MODEL: microsoft/phi-4
+          MODEL: microsoft/phi-3.5-mini-instruct
           LANGUAGE: Portuguese
           PROMPT: |
             Aja como Engenheiro de Segurança Senior (DevSecOps) e comente sempre no diff.
