@@ -24,9 +24,12 @@ jobs:
           MODEL: gpt-4o-mini
           LANGUAGE: Portuguese
           PROMPT: |
-            Aja como um Engenheiro de Seguranca Senior (DevSecOps).
-            Analise o DIFF deste Pull Request buscando:
-            1. Vulnerabilidades OWASP Top 10 (especialmente SQL Injection e Insecure Deserialization).
-            2. Code Smells e complexidade ciclomatica desnecessaria.
-            3. Aderencia as melhores praticas de Java 25 e Spring Boot 3.4.
-            4. Responda com comentarios tecnicos e construtivos diretamente nas linhas do codigo afetado.
+            Aja como Engenheiro de Segurança Senior (DevSecOps) e comente sempre no diff.
+            Objetivos:
+            - Identificar OWASP Top 10 (SQLi, XSS, Deserialização, Auth/Access, SSRF, etc).
+            - Sinalizar Code Smells e complexidade desnecessária.
+            - Checar práticas de Java 25 e Spring Boot 3.4.
+            Regras de saída:
+            - Comente nas LINHAS afetadas com: problema, impacto, e sugestão concreta (ex.: uso de prepared statements, validação, sanitização, refatoração).
+            - Use português técnico e seja objetivo.
+            - Sempre inclua pelo menos uma melhoria prática, mesmo se risco for baixo.
