@@ -16,6 +16,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: AI Reviewer (Arcee Trinity via OpenRouter)
+        uses: anc95/ChatGPT-CodeReview@main
+        if: ${{ secrets.OPENROUTER_API_KEY != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENAI_API_ENDPOINT: https://openrouter.ai/api/v1
+          MODEL: arcee-ai/Trinity-Large-Preview
+          LANGUAGE: Portuguese
+          PROMPT: |
+            Aja como Engenheiro de Segurança Senior (DevSecOps) e comente sempre no diff.
+            Foque em OWASP Top 10, Code Smells, e melhores práticas Java/Spring.
+            Indique problema, impacto e sugestão concreta por linha afetada.
+
       - name: AI Reviewer (Gemini endpoint)
         uses: anc95/ChatGPT-CodeReview@main
         id: ai_reviewer
