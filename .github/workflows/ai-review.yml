@@ -34,3 +34,26 @@ jobs:
             - Comente nas LINHAS afetadas com: problema, impacto, e sugestão concreta (ex.: uso de prepared statements, validação, sanitização, refatoração).
             - Use português técnico e seja objetivo.
             - Sempre inclua pelo menos uma melhoria prática, mesmo se risco for baixo.
+
+      - name: Postar comentário no PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const number = context.payload.pull_request.number;
+            const body = [
+              "AI Code Review (GitHub Action):",
+              "",
+              "- Workflow executado com sucesso.",
+              "- Comentário automático para sinalizar revisão ativa.",
+              "",
+              "Observações:",
+              "- Caso não haja achados críticos no diff, o revisor pode não inserir anotações linha a linha.",
+              "- O prompt está reforçado para sugerir melhorias práticas."
+            ].join("\n");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: number,
+              body
+            });
