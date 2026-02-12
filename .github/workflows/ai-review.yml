@@ -33,6 +33,7 @@ jobs:
       - name: AI Reviewer (Gemini endpoint)
         uses: anc95/ChatGPT-CodeReview@main
         id: ai_reviewer
+        if: ${{ secrets.OPENROUTER_API_KEY == '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.AI_API_KEY }}
