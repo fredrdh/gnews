@@ -12,7 +12,7 @@ public class UnsafeSqlSearch {
     }
 
     public List<Map<String, Object>> findByTitle(String userInput) {
-        String query = "SELECT * FROM news WHERE title = '" + userInput + "'";
-        return jdbcTemplate.queryForList(query);
+        String query = "SELECT * FROM news WHERE title = ?";
+        return jdbcTemplate.queryForList(query, userInput);
     }
 }
