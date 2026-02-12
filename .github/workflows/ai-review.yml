@@ -2,7 +2,7 @@ name: AI Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
 
 jobs:
   review:
@@ -10,6 +10,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      models: true
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -20,10 +21,9 @@ jobs:
         uses: anc95/ChatGPT-CodeReview@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.AI_API_KEY }}
-          OPENAI_API_ENDPOINT: https://generativelanguage.googleapis.com/v1beta/openai
+          USE_GITHUB_MODELS: true
+          MODEL: google/gemini-2.0-flash
           LANGUAGE: Portuguese
-          MODEL: gemini-1.5-flash
           PROMPT: |
             Aja como um Engenheiro de Seguranca Senior (DevSecOps).
             Analise o DIFF deste Pull Request buscando:
