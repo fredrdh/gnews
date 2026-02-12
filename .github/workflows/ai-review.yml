@@ -10,20 +10,20 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      models: true
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: AI Reviewer
+      - name: AI Reviewer (GitHub Models - Phi-4)
         uses: anc95/ChatGPT-CodeReview@main
         id: ai_reviewer
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USE_GITHUB_MODELS: true
-          MODEL: openai/gpt-4o
+          MODEL: microsoft/phi-4
           LANGUAGE: Portuguese
           PROMPT: |
             Aja como Engenheiro de Segurança Senior (DevSecOps) e comente sempre no diff.
@@ -37,7 +37,7 @@ jobs:
             - Sempre inclua pelo menos uma melhoria prática, mesmo se risco for baixo.
 
       - name: AI Reviewer (fallback Gemini via endpoint compatível)
-        if: ${{ steps.ai_reviewer.outcome == 'failure' }}
+        if: ${{ failure() }}
         uses: anc95/ChatGPT-CodeReview@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
