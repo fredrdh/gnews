@@ -16,63 +16,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: AI Reviewer (Arcee Trinity via OpenRouter)
+      - name: AI Reviewer
         uses: anc95/ChatGPT-CodeReview@main
-        if: ${{ secrets.OPENROUTER_API_KEY != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENAI_API_ENDPOINT: https://openrouter.ai/api/v1
-          MODEL: arcee-ai/Trinity-Large-Preview
-          LANGUAGE: Portuguese
-          PROMPT: |
-            Aja como Engenheiro de Segurança Senior (DevSecOps) e comente sempre no diff.
-            Foque em OWASP Top 10, Code Smells, e melhores práticas Java/Spring.
-            Indique problema, impacto e sugestão concreta por linha afetada.
-
-      - name: AI Reviewer (Gemini endpoint)
-        uses: anc95/ChatGPT-CodeReview@main
-        id: ai_reviewer
-        if: ${{ secrets.OPENROUTER_API_KEY == '' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.AI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_ENDPOINT: https://generativelanguage.googleapis.com/v1beta/openai
-          MODEL: gemini-1.5-flash
+          MODEL: gemini-2.0-flash
           LANGUAGE: Portuguese
           PROMPT: |
-            Aja como Engenheiro de Segurança Senior (DevSecOps) e comente sempre no diff.
-            Objetivos:
-            - Identificar OWASP Top 10 (SQLi, XSS, Deserialização, Auth/Access, SSRF, etc).
-            - Sinalizar Code Smells e complexidade desnecessária.
-            - Checar práticas de Java 25 e Spring Boot 3.4.
-            Regras de saída:
-            - Comente nas LINHAS afetadas com: problema, impacto, e sugestão concreta (ex.: uso de prepared statements, validação, sanitização, refatoração).
-            - Use português técnico e seja objetivo.
-            - Sempre inclua pelo menos uma melhoria prática, mesmo se risco for baixo.
+            Aja como um Engenheiro de Segurança Senior (DevSecOps).
+            Analise o DIFF deste Pull Request buscando vulnerabilidades OWASP Top 10.
+            Priorize especialmente SQL Injection e Insecure Deserialização.
+            Sinalize Code Smells e complexidade desnecessária.
+            Cheque práticas atualizadas de Java 25 e Spring Boot 3.4.
+            Para cada linha afetada, descreva:
+            - Problema
+            - Impacto
+            - Sugestão concreta (ex.: prepared statements, validação, sanitização, refatoração)
 
-      # removido fallback; usando endpoint Gemini diretamente para evitar 403 dos GitHub Models
-
-      - name: Postar comentário no PR
-        uses: actions/github-script@v7
-        if: ${{ always() }}
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const number = context.payload.pull_request.number;
-            const body = [
-              "AI Code Review (GitHub Action):",
-              "",
-              "- Workflow executado com sucesso.",
-              "- Comentário automático para sinalizar revisão ativa.",
-              "",
-              "Observações:",
-              "- Caso não haja achados críticos no diff, o revisor pode não inserir anotações linha a linha.",
-              "- O prompt está reforçado para sugerir melhorias práticas."
-            ].join("\n");
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: number,
-              body
-            });
